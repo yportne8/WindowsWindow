@@ -69,6 +69,8 @@ class Window:
         self._title = title
             
     def close(self):
+        # [TODO] CloseWindow throws an exception, priviledged action
+        # close via os.kill(pid)
         try:
             return CloseWindow(self.hwnd)
         except Exception as e:
@@ -76,6 +78,10 @@ class Window:
             # get list of pids and match window hwnd to process pid, -> os.kill(pid)
             print("Failed to close Window.")
             return str(e)
+        
+    @property
+    def pid(self):
+        pass
         
     @property
     def hwnd(self):
