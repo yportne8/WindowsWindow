@@ -5,21 +5,28 @@ from ctypes import wintypes
 from collections import (
     namedtuple, defaultdict)
 
-from win32api import (
-    SetWindowPos, GetSystemMetrics)
+from win32api import GetSystemMetrics
 from win32con import (
-    SW_SHOWNORMAL, SW_HIDE, SW_SHOW, HWND_TOPMOST,
+    SW_SHOWNORMAL, SW_HIDE,
+    SW_SHOW, HWND_TOPMOST,
     SW_MINIMIZE, SW_MAXIMIZE)
 from win32gui import (
-    ShowWindow, SetWindowText, BringWindowToTop,
-    SetForegroundWindow, IsWindowVisible,
-    GetWindowRect, FindWindow)
+    ShowWindow, SetWindowText,
+    SetWindowPos, BringWindowToTop,
+    SetForegroundWindow,
+    IsWindowVisible,
+    GetWindowRect,
+    FindWindow)
+import win32com.client as client
+
+from directkeys import press, release, hold, KEYMAP
 
 
-class Window:
+__all__ = ["Window", "press", "release", "hold"]
+
+
+class Controller:
     
-    # [NOTE] Partial titles can be passed,
-    # will return the first intrastring match.
     def __init__(self, title: str, new_title: str=None):
         super().__init__()
         self.title = title
@@ -31,6 +38,21 @@ class Window:
             except:
                 print("Failed to change Window title...\n")
                 print(f"Current Title: {self.title}")
+        self.keys = KEYMAP
+        self.press = press
+        self.hold = hold
+        self.release = release
+    
+    def __funcs__(self):
+        return [
+            "title", "hwnd", "pid", "isvisible",
+            "position", "size", "shortcut", "ontop",
+            "focus", "hide", "show", "move", "resize",
+            "resize_and_move", "move_to_quadrant",
+            "split_vertical", "split_horizontal",
+            "center", "headsup", "minimize",
+            "maximize", "refresh", "prev",
+            "next", "play", "close"]
         
     @property
     def title(self):
@@ -129,7 +151,7 @@ class Window:
         windows = self._get_windows()
         return [
             title for title in windows.keys() \
-                if partial_title in title][0]
+                if partial_title.lower() in title.lower()][0]
         
     @property
     def hwnd(self):
@@ -157,13 +179,29 @@ class Window:
         h = rect[3] - self.position[1] - 7
         return (w, h)
     
-    def ontop(self):
-        BringWindowToTop(self.hwnd)
-        ShowWindow(self.hwnd, SW_SHOWNORMAL)
+    def shortcut(self, keys: list, downkey: str=None):
+        self.focus()
+        if downkey:
+            hold(downkey)
+            for key in keys:
+                press(key)
+            release(downkey)
+        else:
+            for key in keys:
+                press(key)
     
-    def focus(self):
-        BringWindowToTop(self.hwnd)
+    def ontop(self):
+        shell = client.Dispatch("WScript.Shell")
         ShowWindow(self.hwnd, SW_SHOWNORMAL)
+        shell.SendKeys('%')
+        w, h = self.size
+        x, y = self.position
+        SetWindowPos(self.hwnd, HWND_TOPMOST, x, y, w, h, 0)
+
+    def focus(self):
+        shell = client.Dispatch("WScript.Shell")
+        ShowWindow(self.hwnd, SW_SHOWNORMAL)
+        shell.SendKeys('%')
         SetForegroundWindow(self.hwnd)
 
     def hide(self):
@@ -173,13 +211,12 @@ class Window:
         ShowWindow(self.hwnd, SW_SHOW)
 
     def move(self, x: int, y: int):
-        SetWindowPos(self.hwnd, HWND_TOPMOST,
-            x, y, self.size[0], self.size[1], 0)
+        w, h = self.size
+        return SetWindowPos(self.hwnd, 0, x, y, w, h, 0)
 
     def resize(self, w: int, h: int):
-        SetWindowPos(self.hwnd, HWND_TOPMOST,
-            self.position[0], self.position[1],
-            w, h, 0)
+        x, y = self.position
+        return SetWindowPos(self.hwnd, 0, x, y, w, h, 0)
 
     def resize_and_move(self, resizepct: float):
         x, y = self.position
@@ -202,6 +239,19 @@ class Window:
         w, h = self.size
         x, y = self._get_xy(w, h, quadrant)
         return self.move(x, y)
+    
+    def split_vertical(self, topbottom="top"):
+        # [TODO]
+        # activate prev window, move to not topbottom
+        # activate prev window(current window), move to topbottom
+        pass
+    
+    def split_horizontal(self, leftright="left"):
+        # [TODO]
+        # activate prev window, move to not topbottom
+        # activate prev window(current window), move to topbottom
+        # but horizontally...
+        pass
         
     def minimize(self):
         return ShowWindow(self.hwnd, SW_MINIMIZE)
@@ -215,10 +265,34 @@ class Window:
         y = GetSystemMetrics(1)
         y = y/2-self.size[1]/2
         return self.move(x, y)
+        
+    def headsup(self):
+        hover_effect = 10
+        x = GetSystemMetrics(0)
+        x = x/2-self.size[0]/2
+        return self.move(x, hover_effect)
 
     def refresh(self):
+        # [NOTE] only works on browser windows
         self.focus()
-        # send CTRL+F5
+        press("brefresh")
+    
+    def play(self):
+        # [NOTE] only works on media players
+        # In some cases the media player may
+        # need to be manually started first
+        # before control is released by the
+        # player.
+        self.focus()
+        return press("play")
+    
+    def prev(self):
+        self.focus()
+        return press("prev")
+        
+    def next(self):
+        self.focus()
+        return press("next")
     
     def close(self):
         retcode = os.system(f'taskkill /PID {self.pid} /f')
