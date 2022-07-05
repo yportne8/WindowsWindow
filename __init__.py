@@ -19,7 +19,7 @@ from win32gui import (
     FindWindow)
 import win32com.client as client
 
-from directkeys import press, release, hold, KEYMAP
+from .directkeys import press, release, hold, KEYMAP
 
 
 __all__ = ["Window", "press", "release", "hold"]
@@ -42,6 +42,8 @@ class Controller:
         self.press = press
         self.hold = hold
         self.release = release
+        self.hoverx, self.hovery = 15, 10
+        self.screenw, self.screenh = GetSystemMetrics(0), GetSystemMetrics(1)
     
     def __funcs__(self):
         return [
@@ -238,6 +240,8 @@ class Controller:
     def move_to_quadrant(self, quadrant: int=None):
         w, h = self.size
         x, y = self._get_xy(w, h, quadrant)
+        if quadrant in [3, 4]:
+            y -= 50
         return self.move(x, y)
     
     def split_vertical(self, topbottom="top"):
@@ -269,8 +273,38 @@ class Controller:
     def headsup(self):
         hover_effect = 10
         x = GetSystemMetrics(0)
-        x = x/2-self.size[0]/2
+        x = x/2-(self.size[0]/2)
+        x = int(x)
         return self.move(x, hover_effect)
+    
+    def headsupleft(self):
+        hover_effect = 10
+        x = GetSystemMetrics(0)
+        x = x/2-self.size[0]-(self.size[0]/2)
+        x = int(x)
+        return self.move(x, hover_effect)
+
+    def headsupright(self):
+        hover_effect = 10
+        x = GetSystemMetrics(0)
+        x = x/2+(self.size[0]/3)
+        x = int(x)
+        return self.move(x, hover_effect)
+    
+    def leftpanel(self):
+        hover_effect = 10
+        y = GetSystemMetrics(1)
+        y = y/2-(self.size[1]/2)
+        y = int(y)
+        return self.move(hover_effect, y)
+
+    def rightpanel(self):
+        hover_effect = GetSystemMetrics(0)-self.size[0]-10
+        y = GetSystemMetrics(1)
+        y = y/2-(self.size[1]/2)
+        y = int(y)
+        print(hover_effect)
+        return self.move(hover_effect, y)
 
     def refresh(self):
         # [NOTE] only works on browser windows
