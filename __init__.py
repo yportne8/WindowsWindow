@@ -12,11 +12,9 @@ from win32con import (
     SW_MINIMIZE, SW_MAXIMIZE)
 from win32gui import (
     ShowWindow, SetWindowText,
-    SetWindowPos, BringWindowToTop,
-    SetForegroundWindow,
-    IsWindowVisible,
-    GetWindowRect,
-    FindWindow)
+    SetForegroundWindow, SetWindowPos,
+    ShowWindow, IsWindowVisible,
+    GetWindowRect, FindWindow)
 import win32com.client as client
 
 from .directkeys import press, release, hold, KEYMAP
@@ -24,8 +22,9 @@ from .directkeys import press, release, hold, KEYMAP
 
 __all__ = ["Window", "press", "release", "hold"]
 
-
 class Controller:
+    
+    screenw, screenh = GetSystemMetrics(0), GetSystemMetrics(1)
     
     def __init__(self, title: str, new_title: str=None):
         super().__init__()
@@ -120,7 +119,8 @@ class Controller:
             processes[name] = sorted(pids)
         return processes
     
-    def _get_xy(self, w, h, quadrant: int = None):
+    def _get_quadrant(self):
+        x, y = self.position
         if not quadrant:
             isaftermid = x > self.screenw//2
             isabovemid = y < self.screenh//2
@@ -132,6 +132,11 @@ class Controller:
                 quadrant = 1
             elif not isaftermid and not isabovemid:
                 quadrant = 4
+        return quadrant
+                
+    def _get_xy(self, w, h, quadrant: int = None):
+        if not quadrant:
+            quadrant = self._get_quadrant()
         if quadrant == 1:
             x = self.hoverx
             y = self.hoverx
@@ -154,7 +159,7 @@ class Controller:
         return [
             title for title in windows.keys() \
                 if partial_title.lower() in title.lower()][0]
-        
+                
     @property
     def hwnd(self):
         return FindWindow(None, self.title)
@@ -217,10 +222,12 @@ class Controller:
         return SetWindowPos(self.hwnd, 0, x, y, w, h, 0)
 
     def resize(self, w: int, h: int):
+        ShowWindow(self.hwnd, 1)
         x, y = self.position
         return SetWindowPos(self.hwnd, 0, x, y, w, h, 0)
 
     def resize_and_move(self, resizepct: float):
+        ShowWindow(self.hwnd, 1)
         x, y = self.position
         w, h = self.size
         if resizepct > 1:
@@ -238,6 +245,7 @@ class Controller:
         return self.move(x, y)
 
     def move_to_quadrant(self, quadrant: int=None):
+        ShowWindow(self.hwnd, 1)
         w, h = self.size
         x, y = self._get_xy(w, h, quadrant)
         if quadrant in [3, 4]:
@@ -264,6 +272,7 @@ class Controller:
         return ShowWindow(self.hwnd, SW_MAXIMIZE)
 
     def center(self):
+        ShowWindow(self.hwnd, 1)
         x = GetSystemMetrics(0)
         x = x/2-self.size[0]/2
         y = GetSystemMetrics(1)
@@ -271,6 +280,7 @@ class Controller:
         return self.move(x, y)
         
     def headsup(self):
+        ShowWindow(self.hwnd, 1)
         hover_effect = 10
         x = GetSystemMetrics(0)
         x = x/2-(self.size[0]/2)
@@ -278,6 +288,7 @@ class Controller:
         return self.move(x, hover_effect)
     
     def headsupleft(self):
+        ShowWindow(self.hwnd, 1)
         hover_effect = 10
         x = GetSystemMetrics(0)
         x = x/2-self.size[0]-(self.size[0]/2)
@@ -285,6 +296,7 @@ class Controller:
         return self.move(x, hover_effect)
 
     def headsupright(self):
+        ShowWindow(self.hwnd, 1)
         hover_effect = 10
         x = GetSystemMetrics(0)
         x = x/2+(self.size[0]/3)
@@ -292,6 +304,7 @@ class Controller:
         return self.move(x, hover_effect)
     
     def leftpanel(self):
+        ShowWindow(self.hwnd, 1)
         hover_effect = 10
         y = GetSystemMetrics(1)
         y = y/2-(self.size[1]/2)
@@ -299,6 +312,7 @@ class Controller:
         return self.move(hover_effect, y)
 
     def rightpanel(self):
+        ShowWindow(self.hwnd, 1)
         hover_effect = GetSystemMetrics(0)-self.size[0]-10
         y = GetSystemMetrics(1)
         y = y/2-(self.size[1]/2)
@@ -331,3 +345,12 @@ class Controller:
     def close(self):
         retcode = os.system(f'taskkill /PID {self.pid} /f')
         return retcode == 128
+    
+    def bigger(self):
+        pass
+    
+    def smaller(self):
+        pass
+    
+    def split(self):
+        pass
