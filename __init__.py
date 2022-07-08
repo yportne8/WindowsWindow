@@ -120,18 +120,20 @@ class Controller:
         return processes
     
     def _get_quadrant(self):
+        w, h = self.size
         x, y = self.position
-        if not quadrant:
-            isaftermid = x > self.screenw//2
-            isabovemid = y < self.screenh//2
-            if isaftermid and isabovemid:
-                quadrant = 2
-            elif isaftermid and not isabovemid:
-                quadrant = 3
-            elif not isaftermid and isabovemid:
-                quadrant = 1
-            elif not isaftermid and not isabovemid:
-                quadrant = 4
+        x = x + w
+        y = y + h
+        isaftermid = x > self.screenw//2
+        isabovemid = y < self.screenh//2
+        if isaftermid and isabovemid:
+            quadrant = 2
+        elif isaftermid and not isabovemid:
+            quadrant = 3
+        elif not isaftermid and isabovemid:
+            quadrant = 1
+        elif not isaftermid and not isabovemid:
+            quadrant = 4
         return quadrant
                 
     def _get_xy(self, w, h, quadrant: int = None):
@@ -317,7 +319,6 @@ class Controller:
         y = GetSystemMetrics(1)
         y = y/2-(self.size[1]/2)
         y = int(y)
-        print(hover_effect)
         return self.move(hover_effect, y)
 
     def refresh(self):
